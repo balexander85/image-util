@@ -1,21 +1,21 @@
-import asyncio
-import os
-import sys
-import logging
+from asyncio import ensure_future, Future, gather, get_event_loop
 from datetime import datetime
+from logging import basicConfig, captureWarnings, getLogger, ERROR
+from os import listdir, path, rename
+from sys import argv, stdout
 from typing import Generator
 
 from PIL import Image
 
 
-logging.captureWarnings(True)
-logging.basicConfig(
-    level=logging.DEBUG,
+captureWarnings(True)
+basicConfig(
+    level=ERROR,
     format='%(levelname)7s: %(message)s',
-    stream=sys.stdout,
+    stream=stdout,
 )
 
-LOG = logging.getLogger('')
+LOG = getLogger('')
 
 
 def format_timestamp(timestamp) -> str:
@@ -33,17 +33,17 @@ def get_image_timestamp(image_file) -> str:
 
 def rename_img_file(source, destination, skip_dupes=False):
     """Using os.rename method to update image filename to timestamp format"""
-    if not os.path.isfile(destination):
+    if not path.isfile(destination):
         LOG.info(f"{source} --> {destination}")
         # uncomment when for sure ready to run
-        # os.rename(source, destination)
+        rename(source, destination)
     elif skip_dupes:
         LOG.info(
             f'SKIPPING - Some sort of duplicate {source} **** {destination}'
         )
     else:
         LOG.info(f'Some sort of duplicate {source} **** {destination}')
-        os.rename(source, destination.replace('.JPG', '-duplicate.JPG'))
+        rename(source, destination.replace('.JPG', '-duplicate.JPG'))
 
 
 def get_list_of_images(photo_dir) -> Generator:
@@ -52,20 +52,18 @@ def get_list_of_images(photo_dir) -> Generator:
     Note: There is no verification that the files are images however
     .DS_Store files are filtered out.
     """
-    for img in os.listdir(photo_dir):
-        if os.path.isfile(os.path.join(photo_dir, img)) and img not in (
-            '.DS_Store'
-        ):
+    for img in listdir(photo_dir):
+        if path.isfile(path.join(photo_dir, img)) and img not in ['.DS_Store']:
             yield img
 
 
 async def process_image(directory_path, image):
     """Take file name and path to process image"""
-    img_file_path = os.path.join(directory_path, image)
+    img_file_path = path.join(directory_path, image)
     file_ext = image.split('.')[1]
     img_timestamp = get_image_timestamp(img_file_path)
     new_file_name = f'{format_timestamp(img_timestamp)}.{file_ext}'
-    new_file_path = os.path.join(PHOTO_DIRECTORY, new_file_name)
+    new_file_path = path.join(PHOTO_DIRECTORY, new_file_name)
     rename_img_file(img_file_path, new_file_path)
 
 
@@ -73,20 +71,18 @@ if __name__ == '__main__':
     start_time = datetime.now()
     home_directory = ''
     try:
-        PHOTO_DIRECTORY = f'{home_directory}/Desktop/{sys.argv[1]}'
+        PHOTO_DIRECTORY = f'{home_directory}/Desktop/{argv[1]}'
     except IndexError as e:
         raise Exception('No command line arg passed')
 
-    loop = asyncio.get_event_loop()
-    future = asyncio.Future()
+    loop = get_event_loop()
+    future = Future()
     tasks = [
-        asyncio.ensure_future(process_image(PHOTO_DIRECTORY, img_file))
+        ensure_future(process_image(PHOTO_DIRECTORY, img_file))
         for img_file in get_list_of_images(PHOTO_DIRECTORY)
-        if os.path.isfile(os.path.join(PHOTO_DIRECTORY, img_file))
+        if path.isfile(path.join(PHOTO_DIRECTORY, img_file))
     ]
-    loop.run_until_complete(
-        asyncio.gather(*tasks, return_exceptions=True)
-    )
+    loop.run_until_complete(gather(*tasks, return_exceptions=True))
 
     duration = datetime.now() - start_time
-    LOG.info(f'Total Time: {duration}')
+    LOG.error(f'Total Time: {duration}')
