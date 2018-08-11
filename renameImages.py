@@ -1,6 +1,6 @@
-from asyncio import ensure_future, Future, gather, get_event_loop
+from asyncio import ensure_future, gather, get_event_loop
 from datetime import datetime
-from logging import basicConfig, captureWarnings, getLogger, ERROR
+from logging import basicConfig, captureWarnings, getLogger, INFO
 from os import listdir, path, rename
 from sys import argv, stdout
 from typing import Generator
@@ -10,7 +10,7 @@ from PIL import Image
 
 captureWarnings(True)
 basicConfig(
-    level=ERROR,
+    level=INFO,
     format='%(levelname)7s: %(message)s',
     stream=stdout,
 )
@@ -76,7 +76,6 @@ if __name__ == '__main__':
         raise Exception('No command line arg passed')
 
     loop = get_event_loop()
-    future = Future()
     tasks = [
         ensure_future(process_image(PHOTO_DIRECTORY, img_file))
         for img_file in get_list_of_images(PHOTO_DIRECTORY)
@@ -85,4 +84,4 @@ if __name__ == '__main__':
     loop.run_until_complete(gather(*tasks, return_exceptions=True))
 
     duration = datetime.now() - start_time
-    LOG.error(f'Total Time: {duration}')
+    LOG.info(f'Total Time: {duration}')
