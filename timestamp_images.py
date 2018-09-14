@@ -31,12 +31,12 @@ def get_image_timestamp(image_file) -> str:
         return img._getexif()[36867]
 
 
-def rename_img_file(source, destination, skip_dupes=False):
+def rename_image(source, destination, skip_dupes=False):
     """Using os.rename method to update image filename to timestamp format"""
     if not path.isfile(destination):
         LOG.info(f"{source} --> {destination}")
         # uncomment when for sure ready to run
-        rename(source, destination)
+        # rename(source, destination)
     elif skip_dupes:
         LOG.info(
             f'SKIPPING - Some sort of duplicate {source} **** {destination}'
@@ -64,7 +64,7 @@ async def process_image(directory_path, image):
     img_timestamp = get_image_timestamp(img_file_path)
     new_file_name = f'{format_timestamp(img_timestamp)}.{file_ext}'
     new_file_path = path.join(PHOTO_DIRECTORY, new_file_name)
-    rename_img_file(img_file_path, new_file_path)
+    rename_image(img_file_path, new_file_path)
 
 
 if __name__ == '__main__':
